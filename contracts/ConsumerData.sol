@@ -2,29 +2,24 @@ pragma solidity ^0.5.0;
 
 contract ConsumerData {
     uint public consCount = 0;
-    bool success = true;
 
     struct Consumer {
-        uint id;
         uint aId;
         string name;
         uint age;
         bool vaccinated;
         uint vacId;
-    }
-
-    function getStatus() view public returns (bool) {
-        return success;
+        string password;
     }
 
     mapping(uint => Consumer) public consumers;
 
     constructor() public {
-        AddConsumer(0, 'genesis', 0);
+        AddConsumer(0, 'genesis', 0, '');
     }
 
     event ConsumerAdded(
-        uint id,
+        uint success,
         uint aId,
         string name,
         uint age,
@@ -32,7 +27,7 @@ contract ConsumerData {
         uint vacId
     );
 
-    function AddConsumer(uint _aId, string memory _name, uint _age) public {
+    function AddConsumer(uint _aId, string memory _name, uint _age, string memory _password) public {
         bool proceed = true;
         for(uint i = 0; i <= consCount; i++) {
             if(_aId == consumers[i].aId) {
@@ -42,15 +37,40 @@ contract ConsumerData {
         }
         if(proceed) {
             consCount ++;
-            consumers[consCount] = Consumer(consCount, _aId, _name, _age, false, 0);
-            emit ConsumerAdded(consCount, _aId, _name, _age, false, 0);
-            success = true;
+            consumers[consCount] = Consumer(_aId, _name, _age, false, 0, _password);
+            emit ConsumerAdded(1, _aId, _name, _age, false, 0);
         }
         else
-            success = false;
+            emit ConsumerAdded(0, 0, '', 0, false, 0);
+    }
+
+    event ThrowConsumerData(
+        uint success,
+        uint aId,
+        string name,
+        uint age,
+        bool vaccinated,
+        uint vacId
+    );
+
+    function GetConsumerData(uint _aId, string memory _password) public {
+        bool proceed = false;
+        uint i = 0;
+        for(i = 0; i <= consCount; i++) {
+            if(_aId == consumers[i].aId && keccak256(abi.encodePacked(_password)) == keccak256(abi.encodePacked(consumers[i].password))) {
+                proceed = true;
+                break;
+            }
+        }
+
+        if(proceed)
+            emit ThrowConsumerData(1, consumers[i].aId, consumers[i].name, consumers[i].age, consumers[i].vaccinated, consumers[i].vacId);
+        else
+            emit ThrowConsumerData(0, 0, '', 0, false, 0);
     }
 
     event ConsumerVaccinated(
+        uint success,
         uint aId,
         uint vacId,
         bool vaccinated
@@ -71,10 +91,9 @@ contract ConsumerData {
             _consumer.vaccinated = true;
             _consumer.vacId = _vacId;
             consumers[_id] = _consumer;
-            emit ConsumerVaccinated(_consumer.aId, _consumer.vacId, _consumer.vaccinated);
-            success = true;
+            emit ConsumerVaccinated(1, _consumer.aId, _consumer.vacId, _consumer.vaccinated);
         }
         else
-            success = false;
+            emit ConsumerVaccinated(0, 0, 0, false);
     }
 }
